@@ -1,0 +1,59 @@
+version: '3.5'
+services:
+  mysql:
+    image: mysql:5.6
+    volumes:
+      - database-data:/var/lib/mysql
+      - ${PWD}/configs/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+    env_file: .env
+    networks:
+      - rails-database
+
+  backend:
+    image: rails-backend
+    build:
+      context: ${PWD}/backend
+      dockerfile: ${PWD}/backend/docker/Dockerfile
+      args:
+        RAILS_ENVIRONENT: ${RAILS_ENV}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+    env_file: .env
+    volumes:
+      - ${PWD}/backend:/app
+    networks:
+      - rails-database
+      - rails-default-network
+
+  frontend:
+    image: rails-frontend
+    build:
+      context: ${PWD}/frontend
+      dockerfile: ${PWD}/frontend/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - rails-default-network
+
+networks:
+  rails-default-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.0.0.1/24"
+
+  rails-database:
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.0.10.1/24"
+
+volumes:
+  database-data:
